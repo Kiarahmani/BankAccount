@@ -87,13 +87,13 @@ runShimNode = runShimNodeWithOpts GC_Full cCACHE_THREAD_DELAY
 
 worker :: OperationClass a => DatatypeLibrary a -> Pool -> CacheManager -> GCSetting -> IO ()
 worker dtLib pool cache gcSetting = do
-  putStrLn $ "Worker: started."
+--  putStrLn $ "Worker: started."
   ctxt <- ZMQ.context
   sock <- ZMQ.socket ctxt ZMQ.Rep
   pid <- getProcessID
   -- debugPrint "worker: connecting..."
   ZMQ.connect sock $ "ipc:///tmp/quelea/" ++ show pid
-  putStrLn $ "Worker: successful connection"
+--  putStrLn $ "Worker: successful connection"
   -- debugPrint "worker: connected"
   {- loop forver servicing clients -}
   forever $ do
@@ -172,7 +172,7 @@ worker dtLib pool cache gcSetting = do
 doOp :: OperationClass a => GenOpFun -> CacheManager -> OperationPayload a -> Consistency -> IO (Response, Int)
 doOp op cache request const = do
   let (OperationPayload objType key operName arg sessid seqno mbtxid getDeps) = request
-  putStrLn $ "Responding to Client Request: " ++ show (sessid) ++ " #" ++ show (seqno)
+--  putStrLn $ "Responding to Client Request: " ++ show (sessid) ++ " #" ++ show (seqno)
   -- Build the context
   (ctxt, deps) <- buildContext objType key mbtxid
   -- Perform the operation on this context
@@ -202,13 +202,15 @@ doOp op cache request const = do
                       (eff:el, S.insert addr as)) ([],S.empty) l
       return (el ++ ctxtVanilla, S.union as depsVanilla)
     buildContext ot k (Just (txid, MAV_TxnPl l txndeps)) = do
+      putStrLn $ "building context for MAV"
       res <- doesCacheIncludeTxns cache txndeps
       if res then buildContext ot k (Just (txid,RC_TxnPl l))
       else do
         fetchTxns cache txndeps
         buildContext ot k (Just (txid, MAV_TxnPl l txndeps))
-    buildContext ot k (Just (_,RR_TxnPl effSet)) = return $
-      S.foldl (\(el,as) (addr, eff) -> (eff:el, S.insert addr as))
+    buildContext ot k (Just (_,RR_TxnPl effSet)) = do
+      putStrLn $ "building context for RR"
+      return $ S.foldl (\(el,as) (addr, eff) -> (eff:el, S.insert addr as))
               ([], S.empty) effSet
 
 

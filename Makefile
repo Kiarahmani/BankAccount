@@ -5,7 +5,7 @@ BROKER=
 all: $(EXE) #$(SCRIPTS)
 
 BankAccount: BankAccount.hs
-	ghc $(BROKER) -XDatatypeContexts -fno-warn-warnings-deprecations -rtsopts -threaded BankAccount.hs
+	ghc -DLBB -XDatatypeContexts -fno-warn-warnings-deprecations -rtsopts -threaded BankAccount.hs
 
 clean:
 	rm -f *.dyn* *~ *.hi *.o $(EXE)

@@ -196,6 +196,22 @@ reportSignal pool procList mainTid = do
   runCas pool $ dropTable tableName
   killThread mainTid
 
+
+testTxn :: Key -> CSN ()
+testTxn key = do
+  ts <- liftIO $ getCurrentTime
+  r::() <- invoke key Deposit (2::Int)
+  r::() <- invoke key Deposit (2::Int)
+  r::() <- invoke key Deposit (2::Int)
+  r::() <- invoke key Withdraw (1::Int)
+  r::() <- invoke key Withdraw (1::Int)
+  r::() <- invoke key Withdraw (1::Int)
+  return ()
+-------------------------
+
+
+
+
 clientCore :: Args -> Int -> UTCTime -- default arguments
            -> NominalDiffTime -> Int -> CSN NominalDiffTime
 clientCore args delay someTime avgLat round = do
@@ -204,9 +220,17 @@ clientCore args delay someTime avgLat round = do
   -- Delay thread if required
   when (delay /= 0) $ liftIO $ threadDelay delay
   -- Perform the operations
+  
   t1 <- getNow args someTime
+ 
+
+--  beginTxn
   r::() <- invoke key Deposit (2::Int)
-  r::() <- invoke key Withdraw (1::Int)
+--endTxn
+
+
+--  r::() <- invoke key Deposit (2::Int)
+--  r::() <- invoke key Withdraw (1::Int)
   r :: Int <- invoke key GetBalance ()
   t2 <- getNow args someTime
   -- Calculate new latency
