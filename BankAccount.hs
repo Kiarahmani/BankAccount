@@ -31,7 +31,7 @@ import Control.Concurrent.MVar
 import System.Posix.Signals
 import Control.Exception ( SomeException(..), AsyncException(..) , catch, handle, throw)
 import System.Exit (exitSuccess)
-import System.Random (randomIO)
+import System.Random 
 
 
 --------------------------------------------------------------------------------
@@ -78,8 +78,18 @@ data Args = Args {
   -- Delay between client requests in microseconds. Used to control throughput.
   delayReq :: String,
   -- Measure latency
-  measureLatency :: Bool
+  measureLatency :: Bool,
+  -- Transaction Kind
+  txnKind :: String
 }
+
+data MyTxnKind = RC_ | MAV_ | RR_ | NoTxn_ deriving (Read, Show)
+
+getTxnKind :: MyTxnKind -> TxnKind
+getTxnKind RC_ = RC
+getTxnKind RR_ = RR
+getTxnKind MAV_ = MAV
+getTxnKind NoTxn_ = error "getTxnKind: unexpected value"
 
 args :: Parser Args
 args = Args
@@ -120,6 +130,11 @@ args = Args
   <*> switch
       ( long "measureLatency"
      <> help "Measure operation latency" )
+  <*> strOption
+      ( long "txnKind"
+     <> metavar "[NoTxn|RC|MAV|RR]"
+     <> help "Trasaction kind" 
+     <> value "NoTxn")
 -------------------------------------------------------------------------------
 
 keyspace :: Keyspace
@@ -197,17 +212,10 @@ reportSignal pool procList mainTid = do
   killThread mainTid
 
 
-testTxn :: Key -> CSN ()
-testTxn key = do
-  ts <- liftIO $ getCurrentTime
-  r::() <- invoke key Deposit (2::Int)
-  r::() <- invoke key Deposit (2::Int)
-  r::() <- invoke key Deposit (2::Int)
-  r::() <- invoke key Withdraw (1::Int)
-  r::() <- invoke key Withdraw (1::Int)
-  r::() <- invoke key Withdraw (1::Int)
-  return ()
--------------------------
+txnUpdate :: Key -> CSN ()
+txnUpdate k = do
+  t <- liftIO $ getCurrentTime
+  invoke k Deposit (2::Int)
 
 
 
@@ -215,34 +223,40 @@ testTxn key = do
 clientCore :: Args -> Int -> UTCTime -- default arguments
            -> NominalDiffTime -> Int -> CSN NominalDiffTime
 clientCore args delay someTime avgLat round = do
-  -- Generate key
-  key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO
+  
   -- Delay thread if required
   when (delay /= 0) $ liftIO $ threadDelay delay
+  -- Define the client core body
+  let body = replicateM_ (numOpsPerRound `div` 2) $ do {
+    -- Generate key
+    key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO;
+    --randInt <- liftIO $ randomIO;
+    txnUpdate key;
+    txnUpdate key 
+  }
+
   -- Perform the operations
-  
   t1 <- getNow args someTime
- 
-
---  beginTxn
-  r::() <- invoke key Deposit (2::Int)
---endTxn
-
-
---  r::() <- invoke key Deposit (2::Int)
---  r::() <- invoke key Withdraw (1::Int)
-  r :: Int <- invoke key GetBalance ()
+  case read $ txnKind args ++ "_" of
+    NoTxn_ -> body
+    x -> atomically (getTxnKind x) body
   t2 <- getNow args someTime
   -- Calculate new latency
   let timeDiff = diffUTCTime t2 t1
   let newAvgLat = ((timeDiff / numOpsPerRound) + (avgLat * (fromIntegral $ round - 1))) / (fromIntegral round)
   -- Print info if required
   when (round `mod` printEvery == 0) $ do
-    liftIO . putStrLn $ "Round = " ++ show round ++ " result = " ++ show r
-                        ++ if (measureLatency args)
-                            then " latency = " ++ show newAvgLat
-                            else ""
+    liftIO . putStrLn $ "Round = " ++ show round
+                        ++ if (measureLatency args) then " latency = " ++ show newAvgLat else ""
   return newAvgLat
+
+
+
+
+
+
+
+
 
 getNow :: Args -> UTCTime -> CSN UTCTime
 getNow args someTime =
