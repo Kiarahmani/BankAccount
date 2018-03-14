@@ -87,11 +87,13 @@ runShimNode = runShimNodeWithOpts GC_Full cCACHE_THREAD_DELAY
 
 worker :: OperationClass a => DatatypeLibrary a -> Pool -> CacheManager -> GCSetting -> IO ()
 worker dtLib pool cache gcSetting = do
+  putStrLn $ "Server Started."
   ctxt <- ZMQ.context
   sock <- ZMQ.socket ctxt ZMQ.Rep
   pid <- getProcessID
   -- debugPrint "worker: connecting..."
   ZMQ.connect sock $ "ipc:///tmp/quelea/" ++ show pid
+  putStrLn $ "Connection Successful."
   -- debugPrint "worker: connected"
   {- loop forver servicing clients -}
   forever $ do
@@ -169,6 +171,7 @@ worker dtLib pool cache gcSetting = do
 
 doOp :: OperationClass a => GenOpFun -> CacheManager -> OperationPayload a -> Consistency -> IO (Response, Int)
 doOp op cache request const = do
+  putStrLn $ "Responding to a Client Request..."
   let (OperationPayload objType key operName arg sessid seqno mbtxid getDeps) = request
   -- Build the context
   (ctxt, deps) <- buildContext objType key mbtxid
