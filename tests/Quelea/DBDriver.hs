@@ -230,11 +230,11 @@ dropTable tname = do
 
 tryGetLock :: TableName -> Key -> SessID -> Bool {- tryInsert -} -> Cas Bool
 tryGetLock tname k (SessID sid) True = do
-  res <- executeTrans (mkLockInsert tname) (k, sid) ALL
+  res <- executeTrans (mkLockInsert tname) (k, sid) ONE
   if res then return True
   else tryGetLock tname k (SessID sid) False
 tryGetLock tname k (SessID sid) False = do
-  res <- executeTrans (mkLockUpdate tname) (sid, k, knownUUID) ALL
+  res <- executeTrans (mkLockUpdate tname) (sid, k, knownUUID) ONE
   if res then return True
   else do
     liftIO $ threadDelay cLOCK_DELAY
@@ -247,7 +247,7 @@ getLock tname k sid pool = runCas pool $ do
 
 releaseLock :: TableName -> Key -> SessID -> Pool -> IO ()
 releaseLock tname k (SessID sid) pool = runCas pool $ do
-  res <- executeTrans (mkLockUpdate tname) (knownUUID, k, sid) ALL
+  res <- executeTrans (mkLockUpdate tname) (knownUUID, k, sid) ONE
   if res then return ()
   else error $ "releaseLock : key=" ++ show k ++ " sid=" ++ show sid
 

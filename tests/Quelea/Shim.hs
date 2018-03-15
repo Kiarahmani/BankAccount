@@ -210,6 +210,7 @@ doOp op cache request const = do
       res <- doesCacheIncludeTxns cache txndeps
       if res then buildContext ot k (Just (txid,RC_TxnPl l))
       else do
+-- TMP
         fetchTxns cache txndeps
         buildContext ot k (Just (txid, MAV_TxnPl l txndeps))
     buildContext ot k (Just (_,RR_TxnPl effSet)) = do
@@ -218,6 +219,9 @@ doOp op cache request const = do
       return $ S.foldl (\(el,as) (addr, eff) -> (eff:el, S.insert addr as))
               ([], S.empty) effSet
 -}
+
+--TMP
+
 
 mkDtLib :: OperationClass a => [(a, (GenOpFun, GenSumFun), Availability)] -> DatatypeLibrary a
 mkDtLib l =
