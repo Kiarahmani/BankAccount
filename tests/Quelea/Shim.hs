@@ -213,10 +213,11 @@ doOp op cache request const = do
         fetchTxns cache txndeps
         buildContext ot k (Just (txid, MAV_TxnPl l txndeps))
     buildContext ot k (Just (_,RR_TxnPl effSet)) = do
-      putStrLn $ "building context for RR"
+      getContext cache ot k
+	{-putStrLn $ "building context for RR"
       return $ S.foldl (\(el,as) (addr, eff) -> (eff:el, S.insert addr as))
               ([], S.empty) effSet
-
+-}
 
 mkDtLib :: OperationClass a => [(a, (GenOpFun, GenSumFun), Availability)] -> DatatypeLibrary a
 mkDtLib l =

@@ -9,6 +9,8 @@ read txn
 
 alias b="./LWW_txn --kind Broker --brokerAddr $broker --txnKind $txn"
 alias m="make clean && make LWW_txn"
-alias d="./LWW_txn --kind Drop --txnKind $txn || ./LWW_txn --kind Create --txnKind $txn"
+alias d="./LWW_txn --kind Drop --txnKind $txn && ./LWW_txn --kind Create --txnKind $txn"
+alias dd="./LWW_txn --kind Create --txnKind $txn"
+
 alias s="./LWW_txn --kind Server --rtsArgs “-N2” --brokerAddr $broker --txnKind $txn"
 
