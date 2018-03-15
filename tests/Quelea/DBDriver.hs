@@ -196,11 +196,11 @@ cqlDelete :: TableName -> Key -> UTCTime -> SessID -> SeqNo -> Cas ()
 cqlDelete tname k time (SessID sid) sqn =
   executeWrite ONE (mkDelete tname) (k,time,sid,sqn)
 
-createTxnTable :: Cas () --TMP
-createTxnTable = liftIO . print =<< executeSchema ONE  mkCreateTxnTable ()
+createTxnTable :: Cas ()
+createTxnTable = liftIO . print =<< executeSchema ALL mkCreateTxnTable ()
 
-dropTxnTable :: Cas () --TMP
-dropTxnTable = liftIO . print =<< executeSchema ONE mkDropTxnTable ()
+dropTxnTable :: Cas ()
+dropTxnTable = liftIO . print =<< executeSchema ALL mkDropTxnTable ()
 
 insertTxn :: TxnID -> S.Set TxnDep -> Cas ()
 insertTxn (TxnID txnid) deps = do
@@ -215,26 +215,26 @@ readTxn (TxnID txnid) = do
     Just (TxnDepSet s) -> return $ Just s
 
 createTable :: TableName -> Cas ()
-createTable tname = do --TMP
-  liftIO . print =<< executeSchema ONE (mkCreateTable tname) ()
-  liftIO . print =<< executeSchema ONE (mkCreateLockTable tname) ()
-  liftIO . print =<< executeSchema ONE (mkCreateGCLockTable tname) ()
+createTable tname = do
+  liftIO . print =<< executeSchema ALL (mkCreateTable tname) ()
+  liftIO . print =<< executeSchema ALL (mkCreateLockTable tname) ()
+  liftIO . print =<< executeSchema ALL (mkCreateGCLockTable tname) ()
 
 dropTable :: TableName -> Cas ()
 dropTable tname = do
-  liftIO . print =<< executeSchema ONE (mkDropTable tname) ()
-  liftIO . print =<< executeSchema ONE (mkDropLockTable tname) ()
-  liftIO . print =<< executeSchema ONE (mkDropGCLockTable tname) ()
+  liftIO . print =<< executeSchema ALL (mkDropTable tname) ()
+  liftIO . print =<< executeSchema ALL (mkDropLockTable tname) ()
+  liftIO . print =<< executeSchema ALL (mkDropGCLockTable tname) ()
 
 ----------------------------------------------------------------------------------
 
 tryGetLock :: TableName -> Key -> SessID -> Bool {- tryInsert -} -> Cas Bool
 tryGetLock tname k (SessID sid) True = do
-  res <- executeTrans (mkLockInsert tname) (k, sid) ONE --TMP
+  res <- executeTrans (mkLockInsert tname) (k, sid) ALL
   if res then return True
   else tryGetLock tname k (SessID sid) False
 tryGetLock tname k (SessID sid) False = do
-  res <- executeTrans (mkLockUpdate tname) (sid, k, knownUUID) ONE --TMP
+  res <- executeTrans (mkLockUpdate tname) (sid, k, knownUUID) ALL
   if res then return True
   else do
     liftIO $ threadDelay cLOCK_DELAY
@@ -247,7 +247,7 @@ getLock tname k sid pool = runCas pool $ do
 
 releaseLock :: TableName -> Key -> SessID -> Pool -> IO ()
 releaseLock tname k (SessID sid) pool = runCas pool $ do
-  res <- executeTrans (mkLockUpdate tname) (knownUUID, k, sid) ONE --TMP
+  res <- executeTrans (mkLockUpdate tname) (knownUUID, k, sid) ALL
   if res then return ()
   else error $ "releaseLock : key=" ++ show k ++ " sid=" ++ show sid
 
@@ -255,11 +255,11 @@ releaseLock tname k (SessID sid) pool = runCas pool $ do
 
 tryGetGCLock :: TableName -> Key -> SessID -> Bool {- tryInsert -} -> Cas Bool
 tryGetGCLock tname k (SessID sid) True = do
-  res <- executeTrans (mkGCLockInsert tname) (k, sid) ONE --TMP
+  res <- executeTrans (mkGCLockInsert tname) (k, sid) ALL
   if res then return True
   else tryGetGCLock tname k (SessID sid) False
 tryGetGCLock tname k (SessID sid) False = do
-  res <- executeTrans (mkGCLockUpdate tname) (sid, k, knownUUID) ONE --TMP
+  res <- executeTrans (mkGCLockUpdate tname) (sid, k, knownUUID) ALL
   if res then return True
   else do
     liftIO $ threadDelay cLOCK_DELAY
@@ -272,25 +272,25 @@ getGCLock tname k sid pool = runCas pool $ do
 
 releaseGCLock :: TableName -> Key -> SessID -> Pool -> IO ()
 releaseGCLock tname k (SessID sid) pool = runCas pool $ do
-  res <- executeTrans (mkGCLockUpdate tname) (knownUUID, k, sid) ONE --TMP
+  res <- executeTrans (mkGCLockUpdate tname) (knownUUID, k, sid) ALL
   if res then return ()
   else error $ "releaseGCLock : key=" ++ show k ++ " sid=" ++ show sid
 
 --------------------------------------------------------------------------------
 
 createGlobalLockTable :: Cas ()
-createGlobalLockTable = do --TMP
-  liftIO . print =<< executeSchema ONE mkCreateGlobalLockTable ()
-  executeWrite ONE mkGlobalLockInsert (knownUUID, knownUUID)
+createGlobalLockTable = do
+  liftIO . print =<< executeSchema ALL mkCreateGlobalLockTable ()
+  executeWrite ALL mkGlobalLockInsert (knownUUID, knownUUID)
 
 getGlobalLock :: TxnID -> Pool -> IO ()
 getGlobalLock (TxnID txnid) pool = runCas pool loop
   where
     loop = do
-      success <- executeTrans mkGlobalLockUpdate (txnid, knownUUID, knownUUID) ONE --TMP
+      success <- executeTrans mkGlobalLockUpdate (txnid, knownUUID, knownUUID) ALL
       when (not success) loop
 
 releaseGlobalLock :: TxnID -> Pool -> IO ()
 releaseGlobalLock (TxnID txnid) pool = runCas pool $ do
-  success <- executeTrans mkGlobalLockUpdate (knownUUID, knownUUID, txnid) ONE --TMP
+  success <- executeTrans mkGlobalLockUpdate (knownUUID, knownUUID, txnid) ALL
   when (not success) (error $ "releaseGlobalLock: key=" ++ show (TxnID txnid))
