@@ -13,6 +13,6 @@ sed s/LADDRESS/$private/ temp1 > temp2
 sed s/BCADDRESS/$public/ temp2 > cassandra.yaml
 sudo mv cassandra.yaml /opt/apache-cassandra-3.11.2/conf/
 rm temp*
-#sudo /opt/apache-cassandra-3.11.2/bin/cassandra -R -f
+sudo /opt/apache-cassandra-3.11.2/bin/cassandra -R -f
 
 
