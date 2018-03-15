@@ -108,6 +108,7 @@ worker dtLib pool cache gcSetting = do
                 Nothing -> error $ "Not found in DatatypeLibrary:" ++ (show (req^.objTypeReq, req^.opReq))
                 Just x -> x
         -- debugPrint $ "worker: before " ++ show (req^.objTypeReq, req^.opReq, av)
+	
         (result, ctxtSize) <- case av of
           Eventual -> doOp op cache req ONE
           Causal -> processCausalOp req op cache
@@ -195,8 +196,11 @@ doOp op cache request const = do
   -- return response
   return (result, Prelude.length ctxt)
   where
-    buildContext ot k Nothing = getContext cache ot k
+    buildContext ot k Nothing = do
+      putStrLn $ "building context for NoTxn"
+      getContext cache ot k
     buildContext ot k (Just (_, RC_TxnPl l)) = do
+      putStrLn $ "building context for RC"
       (ctxtVanilla, depsVanilla) <- buildContext ot k Nothing
       let (el, as) = S.foldl (\(el,as) (addr, eff) ->
                       (eff:el, S.insert addr as)) ([],S.empty) l
