@@ -12,3 +12,6 @@ LWW_txn: LWW_txn.hs
 
 clean:
 	rm -f *.dyn* *~ *.hi *.o $(EXE)
+
+hard: 
+	rm -f ./*/*.dyn* ./*/*~ ./*/*.hi ./*/*.o *.dyn* *~ *.hi *.o ./*/*/*.dyn* ./*/*/*~ ./*/*/*.hi ./*/*/*.o
