@@ -3,10 +3,12 @@
 echo "Enter the ip of the broker node:"
 read broker
 
+echo "Enter the transaction kind [NoTxn|RC|MAV|RR]:"
+read txn
 
 
-alias b="./LWW_txn --kind Broker --brokerAddr $broker"
+alias b="./LWW_txn --kind Broker --brokerAddr $broker --txnKind $txn"
 alias m="make clean && make LWW_txn"
-alias d="./LWW_txn --kind Drop && ./LWW_txn --kind Create "
-alias s="./LWW_txn --kind Server --rtsArgs “-N2” --brokerAddr $broker"
+alias d="./LWW_txn --kind Drop --txnKind $txn || ./LWW_txn --kind Create --txnKind $txn"
+alias s="./LWW_txn --kind Server --rtsArgs “-N2” --brokerAddr $broker --txnKind $txn"
 
