@@ -246,6 +246,7 @@ clientCore args delay someTime avgLat round = do
     randInt <- liftIO $ randomIO;
     ecWrite key randInt;
     ecRead key
+   
   }
   -- Perform the operations
   t1 <- getNow args someTime
