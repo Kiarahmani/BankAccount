@@ -1,0 +1,3 @@
+The binary should be called with the following attributes in order to respond to remote queries:
+etcd --advertise-client-urls 'http://0.0.0.0:2379' --listen-client-urls 'http://0.0.0.0:2379' --data-dir /tmp/
+

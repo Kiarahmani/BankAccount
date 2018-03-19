@@ -9,6 +9,7 @@ import Quelea.NameService.Types
 import Quelea.Types (summarize)
 import Quelea.Marshall
 import Quelea.TH
+import Quelea.ETCDDriver
 #ifdef LBB
 import Quelea.NameService.LoadBalancingBroker
 #else
@@ -242,7 +243,7 @@ reportSignal pool procList mainTid = do
 
 --------------
 --------------------------------------------------------------------
-
+{-
 getTxnLock :: Int -> CSN () 
 getTxnLock i= let key = (mkKey (-1::Int))
 	      in do  t <- liftIO $ getCurrentTime
@@ -262,7 +263,7 @@ releaseTxnLock :: CSN ()
 releaseTxnLock = let key = (mkKey (-1::Int))
 		 in do t <- liftIO $ getCurrentTime
 	               invoke key STWrite (t,(0::Int))
-
+-}
 ---------------------------------------------------------------------
 -------------
 
@@ -287,9 +288,9 @@ clientCore args delay someTime avgLat round = do
   case read $ txnKind args ++ "_" of
     NoTxn_ -> body
     
-    ACID_ -> do getTxnLock 0
+    ACID_ -> do getETCDLock 0
 		atomically (RR) body
-    	        releaseTxnLock
+    	        releaseETCDLock
     
     x -> do atomically (getTxnKind x) body
   t2 <- getNow args someTime
