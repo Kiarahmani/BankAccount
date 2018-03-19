@@ -83,7 +83,7 @@ data Args = Args {
   txnKind :: String
 }
 
-data MyTxnKind = RC_ | MAV_ | RR_ | NoTxn_ deriving (Read, Show)
+data MyTxnKind = RC_ | MAV_ | RR_ | NoTxn_ | ACID_ deriving (Read, Show)
 
 getTxnKind :: MyTxnKind -> TxnKind
 getTxnKind RC_ = RC
@@ -140,7 +140,9 @@ keyspace :: Keyspace
 keyspace = Keyspace $ pack "Quelea"
 
 dtLib = mkDtLib [(HAWrite, mkGenOp writeReg summarize, $(checkOp HAWrite haWriteCtrt)),
-                 (HARead, mkGenOp readReg summarize, $(checkOp HARead haReadCtrt))]
+                 (HARead, mkGenOp readReg summarize, $(checkOp HARead haReadCtrt)),
+		 (STWrite, mkGenOp writeReg summarize, $(checkOp STWrite stWriteCtrt)),
+		 (STRead, mkGenOp readReg summarize, $(checkOp STRead stReadCtrt))]
 
 ecRead :: Key -> CSN Int
 ecRead k = invoke k HARead ()
@@ -149,6 +151,9 @@ ecWrite :: Key -> Int -> CSN ()
 ecWrite k v = do
   t <- liftIO $ getCurrentTime
   invoke k HAWrite (t,v)
+
+
+
 
 -------------------------------------------------------------------------------
 
@@ -225,14 +230,43 @@ run args = do
       runCas pool $ do
         dropTable tableName
         dropTxnTable
-
-reportSignal :: Pool -> [ProcessHandle] -> ThreadId -> IO ()
 reportSignal pool procList mainTid = do
   mapM_ terminateProcess procList
   runCas pool $ do
     dropTable tableName
     dropTxnTable
   killThread mainTid
+
+
+
+
+--------------
+--------------------------------------------------------------------
+
+getTxnLock :: Int -> CSN () 
+getTxnLock i= let key = (mkKey (-1::Int))
+	      in do  t <- liftIO $ getCurrentTime
+  		     r:: Int <- invoke key STRead ()
+	             case r of
+			0 -> do liftIO $ print "lock acquired!"
+			     	invoke key STWrite (t,(1::Int))
+ 			1 -> do liftIO $ print i 
+				liftIO $ threadDelay 20000
+				getTxnLock (i+1)
+
+
+
+
+
+releaseTxnLock :: CSN ()
+releaseTxnLock = let key = (mkKey (-1::Int))
+		 in do t <- liftIO $ getCurrentTime
+	               invoke key STWrite (t,(0::Int))
+
+---------------------------------------------------------------------
+-------------
+
+
 
 clientCore :: Args -> Int -> UTCTime -- default arguments
            -> NominalDiffTime -> Int -> CSN NominalDiffTime
@@ -245,14 +279,19 @@ clientCore args delay someTime avgLat round = do
     key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO;
     randInt <- liftIO $ randomIO;
     ecWrite key randInt;
-    ecRead key
-   
+    ecRead key;
   }
+
   -- Perform the operations
   t1 <- getNow args someTime
   case read $ txnKind args ++ "_" of
     NoTxn_ -> body
-    x -> atomically (getTxnKind x) body
+    
+    ACID_ -> do getTxnLock 0
+		atomically (RR) body
+    	        releaseTxnLock
+    
+    x -> do atomically (getTxnKind x) body
   t2 <- getNow args someTime
   -- Calculate new latency
   let timeDiff = diffUTCTime t2 t1

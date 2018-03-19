@@ -197,23 +197,23 @@ doOp op cache request const = do
   return (result, Prelude.length ctxt)
   where
     buildContext ot k Nothing = do
-      putStrLn $ "building context for NoTxn"
+--      putStrLn $ "building context for NoTxn"
       getContext cache ot k
     buildContext ot k (Just (_, RC_TxnPl l)) = do
-      putStrLn $ "building context for RC"
+--      putStrLn $ "building context for RC"
       (ctxtVanilla, depsVanilla) <- buildContext ot k Nothing
       let (el, as) = S.foldl (\(el,as) (addr, eff) ->
                       (eff:el, S.insert addr as)) ([],S.empty) l
       return (el ++ ctxtVanilla, S.union as depsVanilla)
     buildContext ot k (Just (txid, MAV_TxnPl l txndeps)) = do
-      putStrLn $ "building context for MAV"
+--      putStrLn $ "building context for MAV"
       res <- doesCacheIncludeTxns cache txndeps
       if res then buildContext ot k (Just (txid,RC_TxnPl l))
       else do
         fetchTxns cache txndeps
         buildContext ot k (Just (txid, MAV_TxnPl l txndeps))
     buildContext ot k (Just (_,RR_TxnPl effSet)) = do
-	putStrLn $ "building context for RR"
+--	putStrLn $ "building context for RR"
       	return $ S.foldl (\(el,as) (addr, eff) -> (eff:el, S.insert addr as))
               ([], S.empty) effSet
 
