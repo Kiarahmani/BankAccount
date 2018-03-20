@@ -160,6 +160,7 @@ ecWrite k v = do
 
 run :: Args -> IO ()
 run args = do
+  initETCDLock
   let k = read $ kind args
   let broker = brokerAddr args
   let delay = read $ delayReq args
@@ -241,31 +242,6 @@ reportSignal pool procList mainTid = do
 
 
 
---------------
---------------------------------------------------------------------
-{-
-getTxnLock :: Int -> CSN () 
-getTxnLock i= let key = (mkKey (-1::Int))
-	      in do  t <- liftIO $ getCurrentTime
-  		     r:: Int <- invoke key STRead ()
-	             case r of
-			0 -> do liftIO $ print "lock acquired!"
-			     	invoke key STWrite (t,(1::Int))
- 			1 -> do liftIO $ print i 
-				liftIO $ threadDelay 20000
-				getTxnLock (i+1)
-
-
-
-
-
-releaseTxnLock :: CSN ()
-releaseTxnLock = let key = (mkKey (-1::Int))
-		 in do t <- liftIO $ getCurrentTime
-	               invoke key STWrite (t,(0::Int))
--}
----------------------------------------------------------------------
--------------
 
 
 
@@ -288,9 +264,9 @@ clientCore args delay someTime avgLat round = do
   case read $ txnKind args ++ "_" of
     NoTxn_ -> body
     
-    ACID_ -> do liftIO $ getETCDLock 0
+    ACID_ -> do liftIO $ getETCDLock 
 		atomically (RR) body
-    	        liftIO $ releaseETCDLock 0
+    	        liftIO $ releaseETCDLock 
     
     x -> do atomically (getTxnKind x) body
   t2 <- getNow args someTime
