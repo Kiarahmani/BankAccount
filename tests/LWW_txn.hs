@@ -288,9 +288,9 @@ clientCore args delay someTime avgLat round = do
   case read $ txnKind args ++ "_" of
     NoTxn_ -> body
     
-    ACID_ -> do getETCDLock 0
+    ACID_ -> do liftIO $ getETCDLock 0
 		atomically (RR) body
-    	        releaseETCDLock
+    	        liftIO $ releaseETCDLock 0
     
     x -> do atomically (getTxnKind x) body
   t2 <- getNow args someTime

@@ -5,6 +5,7 @@ getETCDLock,
 releaseETCDLock
 )where
 
+import Quelea.ClientMonad
 import           Test.Hspec
 
 import           Data.Char
