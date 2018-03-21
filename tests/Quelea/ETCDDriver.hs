@@ -28,7 +28,7 @@ import 		 Network.Etcd as E
 
 setup :: IO (Client)
 setup = do
-    client <- createClient [ "http://13.59.97.241:2379" ]
+    client <- createClient [ "http://127.0.0.1:2379" ]
     return (client)
 
 httpKey :: Text
