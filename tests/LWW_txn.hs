@@ -265,7 +265,7 @@ clientCore args delay someTime avgLat round = do
     NoTxn_ -> body
     
     ACID_ -> do liftIO $ getETCDLock 
-		atomically (RR) body
+		atomically (RC) body
     	        liftIO $ releaseETCDLock 
     
     x -> do atomically (getTxnKind x) body
