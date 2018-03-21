@@ -302,27 +302,25 @@ clientCore args delay someTime avgLat round = do
   
   let performBody x 
 	| x <= 5 = do 
-  		--liftIO $ getETCDLock 
+  		liftIO $ getETCDLock 
   		atomically (RC) bodyDelivery
-  		--liftIO $ releaseETCDLock 
+  		liftIO $ releaseETCDLock 
 	| x <=10 = do
-  		--liftIO $ getETCDLock 
+  		liftIO $ getETCDLock 
   		atomically (RC) bodyStockLevel
-  		--liftIO $ releaseETCDLock 
+  		liftIO $ releaseETCDLock 
 	| x <=15 = do	
-  		--liftIO $ getETCDLock 
+  		liftIO $ getETCDLock 
 		atomically (RC) bodyOrderStatus
-  		--liftIO $ releaseETCDLock 
+  		liftIO $ releaseETCDLock 
 	| x <=60 = do 
-  		--liftIO $ getETCDLock 
+  		liftIO $ getETCDLock 
 		atomically (RC) bodyPayment
-  		--liftIO $ releaseETCDLock 
+  		liftIO $ releaseETCDLock 
 	| otherwise = do
-  		--liftIO $ getETCDLock 
+  		liftIO $ getETCDLock 
   		atomically (RC) bodyNewOrder
-  		--liftIO $ releaseETCDLock 
-		
-
+  		liftIO $ releaseETCDLock 
 
   t1 <- getNow args someTime
   performBody txnType
