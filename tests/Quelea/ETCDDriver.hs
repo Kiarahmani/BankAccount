@@ -53,7 +53,7 @@ tryGettingETCDLock client i = do node <- E.setcas "free" client httpKey "taken" 
 			         case node  of
 			 	   Just n -> return () --putStrLn "Lock Acquired!"
 				   Nothing -> do threadDelay 5000
-				   		 putStrLn $ (show i) ++ "Failed to acquire lock. Trying again..." 
+				   		 --putStrLn $ (show i) ++ "Failed to acquire lock. Trying again..." 
 					   	 tryGettingETCDLock client (i+1)
 
 
