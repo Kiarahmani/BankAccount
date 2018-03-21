@@ -50,7 +50,7 @@ numOpsPerRound :: Num a => a
 numOpsPerRound = 10
 
 printEvery :: Int
-printEvery = 1
+printEvery = 100
 
 --------------------------------------------------------------------------------
 
@@ -250,25 +250,82 @@ clientCore :: Args -> Int -> UTCTime -- default arguments
 clientCore args delay someTime avgLat round = do
   -- Delay thread if required
   when (delay /= 0) $ liftIO $ threadDelay delay
-  -- Define the client core body
-  let body = replicateM_ (numOpsPerRound `div` 2) $ do {
-    -- Generate key
+  -- Define the client core transactions
+  --
+  let bodyDelivery = replicateM_ (1) $ do {
     key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO;
     randInt <- liftIO $ randomIO;
     ecWrite key randInt;
+    liftIO $ print "Delivery";
+    ecRead key;
+  }
+  
+
+  let bodyNewOrder = replicateM_ (1) $ do {
+    key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO;
+    randInt <- liftIO $ randomIO;
+    ecWrite key randInt;
+    liftIO $ print "NewOrder";
+    ecRead key;
+  }
+  
+
+  let bodyOrderStatus = replicateM_ (1) $ do {
+    key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO;
+    randInt <- liftIO $ randomIO;
+    ecWrite key randInt;
+    liftIO $ print "OrderStatus";
+    ecRead key;
+  }
+  
+
+  let bodyPayment = replicateM_ (1) $ do {
+    key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO;
+    randInt <- liftIO $ randomIO;
+    ecWrite key randInt;
+    liftIO $ print "Payment";
+    ecRead key;
+  }
+  
+
+  let bodyStockLevel = replicateM_ (1) $ do {
+    key <- liftIO $ (mkKey . (\i -> i `mod` (100000::Int))) <$> randomIO;
+    randInt <- liftIO $ randomIO;
+    ecWrite key randInt;
+    liftIO $ print "StockLevel";
     ecRead key;
   }
 
+
   -- Perform the operations
+  (txnType::Int) <- liftIO $ randomRIO (1, 100) 
+  
+  let performBody x 
+	| x <= 5 = do 
+  		--liftIO $ getETCDLock 
+  		atomically (RC) bodyDelivery
+  		--liftIO $ releaseETCDLock 
+	| x <=10 = do
+  		--liftIO $ getETCDLock 
+  		atomically (RC) bodyStockLevel
+  		--liftIO $ releaseETCDLock 
+	| x <=15 = do	
+  		--liftIO $ getETCDLock 
+		atomically (RC) bodyOrderStatus
+  		--liftIO $ releaseETCDLock 
+	| x <=60 = do 
+  		--liftIO $ getETCDLock 
+		atomically (RC) bodyPayment
+  		--liftIO $ releaseETCDLock 
+	| otherwise = do
+  		--liftIO $ getETCDLock 
+  		atomically (RC) bodyNewOrder
+  		--liftIO $ releaseETCDLock 
+		
+
+
   t1 <- getNow args someTime
-  case read $ txnKind args ++ "_" of
-    NoTxn_ -> body
-    
-    ACID_ -> do liftIO $ getETCDLock 
-		atomically (RC) body
-    	        liftIO $ releaseETCDLock 
-    
-    x -> do atomically (getTxnKind x) body
+  performBody txnType
   t2 <- getNow args someTime
   -- Calculate new latency
   let timeDiff = diffUTCTime t2 t1
