@@ -140,10 +140,10 @@ args = Args
 keyspace :: Keyspace
 keyspace = Keyspace $ pack "Quelea"
 
-dtLib = mkDtLib [(HAWrite, mkGenOp writeReg summarize, $(checkOp HAWrite haWriteCtrt)),
-                 (HARead, mkGenOp readReg summarize, $(checkOp HARead haReadCtrt)),
-		 (STWrite, mkGenOp writeReg summarize, $(checkOp STWrite stWriteCtrt)),
-		 (STRead, mkGenOp readReg summarize, $(checkOp STRead stReadCtrt))]
+dtLib = mkDtLib [(HAWrite, mkGenOp writeReg summarize, Eventual),
+                 (HARead, mkGenOp readReg summarize, Eventual),
+		 (STWrite, mkGenOp writeReg summarize, Strong),
+		 (STRead, mkGenOp readReg summarize, Strong)]
 
 ecRead :: Key -> CSN Int
 ecRead k = invoke k HARead ()
@@ -159,7 +159,7 @@ ecWrite k v = do
 -------------------------------------------------------------------------------
 
 run :: Args -> IO ()
-run args = do
+run args = do 
   initETCDLock
   let k = read $ kind args
   let broker = brokerAddr args

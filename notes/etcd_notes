@@ -1,3 +1,26 @@
 The binary should be called with the following attributes in order to respond to remote queries:
-etcd --advertise-client-urls 'http://0.0.0.0:2379' --listen-client-urls 'http://0.0.0.0:2379' --data-dir /tmp/
+etcd --advertise-client-urls 'http://0.0.0.0:2379' --listen-client-urls
+'http://0.0.0.0:2379' --data-dir /tmp/
+--------------------------------
+
+The commands to set up the cluster correctly:
+etcd --name infra1  
+	--initial-advertise-peer-urls http://0.0.0.0:2380
+	--listen-peer-urls http://0.0.0.0:2380 
+	--listen-client-urls http://0.0.0.0:2379 
+	--advertise-client-urls http://0.0.0.0:2380
+	--discovery https://discovery.etcd.io/4fa3ceb9f80dbb5a5af090a1e03227aa
+
+
+etcd --name infra0  
+	--initial-advertise-peer-urls http://35.166.157.232:2380 
+	--listen-peer-urls http://172.31.45.98:2380
+	--listen-client-urls http://0.0.0.0:2379 
+	--advertise-client-urls http://35.166.157.232:2380 
+	--discovery https://discovery.etcd.io/4fa3ceb9f80dbb5a5af090a1e03227aa
+
+* It seems that the affreeses are not really that important
+
+
+
 

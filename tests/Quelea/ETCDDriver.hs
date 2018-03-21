@@ -4,7 +4,6 @@ module Quelea.ETCDDriver  (
 getETCDLock,
 initETCDLock,
 releaseETCDLock
-
 )where
 
 import Quelea.ClientMonad
@@ -20,17 +19,28 @@ import qualified Control.Concurrent.Async as Async
 import           Control.Monad
 import           Control.Monad.Random (getRandomR, evalRandIO)
 import           Control.Monad.Trans
+import 	       	 Data.Aeson
+import 		 Network.HTTP.Client
+import 		 Control.Lens
+import 		 Network.Etcd as E
 
-import           Network.Etcd
 
 
+setup :: IO (Client)
+setup = do
+    client <- createClient [ "http://13.59.97.241:2379" ]
+    return (client)
+
+httpKey :: Text
+httpKey = "deSQL/mutex"
 
 
 
 initETCDLock :: IO ()
-initETCDLock = do client <- setup
-                  set client "/deSQL/mutex" "free" Nothing
-		  return ()
+initETCDLock = releaseETCDLock
+
+
+
 
 getETCDLock :: IO ()
 getETCDLock = do client <- setup
@@ -38,28 +48,18 @@ getETCDLock = do client <- setup
 
 
 tryGettingETCDLock :: Client -> Int -> IO ()
-tryGettingETCDLock client i = do node <- get client "/deSQL/mutex"
+tryGettingETCDLock client i = do node <- E.setcas "free" client httpKey "taken" Nothing
 			         case node  of
-			 	   Just n -> case (_nodeValue n) of 
-			 	 	       Just value -> if (T.isPrefixOf value "freeee")
-			 				     then do set client "/deSQL/mutex" "taken" Nothing
-								     return ()
-							     else do print i
-							             threadDelay 1000
-							             tryGettingETCDLock client (i+1)
-				   _ -> print "ERROR: Key does not exist!"	
-
+			 	   Just n -> putStrLn "Lock Acquired!"
+				   Nothing -> do threadDelay 5000
+				   		 putStrLn $ (show i) ++ "Failed to acquire lock. Trying again..." 
+					   	 tryGettingETCDLock client (i+1)
 
 
 releaseETCDLock :: IO ()
 releaseETCDLock = do client <- setup
-                     set client "/deSQL/mutex" "free" Nothing
+                     E.set client httpKey "free" Nothing
 		     return ()
-
-setup :: IO (Client)
-setup = do
-    client <- createClient [ "http://13.59.97.241:2379" ]
-    return (client)
 
 
 
