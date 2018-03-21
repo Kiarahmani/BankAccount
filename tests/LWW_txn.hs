@@ -50,7 +50,7 @@ numOpsPerRound :: Num a => a
 numOpsPerRound = 10
 
 printEvery :: Int
-printEvery = 100
+printEvery = 1
 
 --------------------------------------------------------------------------------
 
