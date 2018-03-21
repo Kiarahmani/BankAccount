@@ -306,17 +306,17 @@ clientCore args delay someTime avgLat round = do
   		atomically (RC) bodyDelivery
   		liftIO $ releaseETCDLock 
 	| x <=10 = do
-  		liftIO $ getETCDLock 
-  		atomically (RC) bodyStockLevel
-  		liftIO $ releaseETCDLock 
+  		--liftIO $ getETCDLock 
+  		atomically (MAV) bodyStockLevel
+  		--liftIO $ releaseETCDLock 
 	| x <=15 = do	
-  		liftIO $ getETCDLock 
-		atomically (RC) bodyOrderStatus
-  		liftIO $ releaseETCDLock 
+  		--liftIO $ getETCDLock 
+		atomically (MAV) bodyOrderStatus
+  		--liftIO $ releaseETCDLock 
 	| x <=60 = do 
-  		liftIO $ getETCDLock 
-		atomically (RC) bodyPayment
-  		liftIO $ releaseETCDLock 
+  		--liftIO $ getETCDLock 
+		atomically (MAV) bodyPayment
+  		--liftIO $ releaseETCDLock 
 	| otherwise = do
   		liftIO $ getETCDLock 
   		atomically (RC) bodyNewOrder
